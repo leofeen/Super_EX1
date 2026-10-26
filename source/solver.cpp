@@ -42,7 +42,7 @@ Matrix<double> Solver::solve(double precision, size_t* iteration_count)
     auto current_r = this->B - this->operator_A(current_iteration);
 
     Matrix<double> next_z(this->M+1, this->N+1);
-    auto current_z = current_r.hadamard_division(this->Q + Matrix<double>(this->M+1, this->N+1, 2/pow(this->h_x, 2) + 2/pow(this->h_y, 2)));
+    auto current_z = current_r.hadamard_division(this->D);
 
     auto descent = current_z;
 
@@ -56,7 +56,7 @@ Matrix<double> Solver::solve(double precision, size_t* iteration_count)
         current_iteration = next_iteration;
 
         next_r = current_r - step*this->operator_A(descent);
-        next_z = next_r.hadamard_division(this->Q + Matrix<double>(this->M+1, this->N+1, 2/pow(this->h_x, 2) + 2/pow(this->h_y, 2)));
+        next_z = next_r.hadamard_division(this->D);
         beta = this->scalar_product(next_z, next_r) / this->scalar_product(current_z, current_r);
 
         current_r = next_r;
