@@ -4,7 +4,7 @@
 #include <omp.h>
 
 
-#define NUM_THREADS 16
+// #define NUM_THREADS 16
 
 
 int check_point_inside_region(double x, double y)
@@ -25,11 +25,12 @@ double boundary_condition(double x, double y)
     return sin(x + y);
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    omp_set_num_threads(NUM_THREADS);
+    // omp_set_num_threads(NUM_THREADS);
+    omp_set_num_threads(std::stoi(argv[2]));
 
-    size_t M = 80;
+    size_t M = std::stoi(argv[1]);
     size_t N = M;
     double x_min = -2.1;
     double x_max = 2.1;
