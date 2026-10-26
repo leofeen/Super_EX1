@@ -47,6 +47,7 @@ public:
         this->rows = rows;
         this->columns = columns;
 
+        // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
@@ -66,6 +67,7 @@ public:
         }
 
         auto result = Matrix<T>(rows, columns);
+        // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
@@ -86,6 +88,8 @@ public:
         }
 
         auto result = Matrix<T>(rows, columns);
+
+        // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
@@ -100,6 +104,8 @@ public:
     Matrix<T> operator* (const T& scalar)
     {
         auto result = Matrix<T>(rows, columns);
+
+        // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
@@ -125,6 +131,8 @@ public:
         }
 
         auto result = Matrix<T>(rows, other.columns);
+
+        // #pragma omp parallel for reduction(+ : result)
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < other.columns; j++)
@@ -148,6 +156,7 @@ public:
         }
 
         auto result = Matrix<T>(rows, columns);
+        // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
@@ -168,6 +177,7 @@ public:
         }
 
         auto result = Matrix<T>(rows, columns);
+        // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
@@ -219,6 +229,7 @@ Matrix<T> operator* (const T& scalar, const Matrix<T>& mat)
     int columns = mat.get_columns();
 
     auto result = Matrix<T>(rows, columns);
+    // #pragma omp parallel for simd
     for (size_t i = 0; i < rows; i++)
     {
         for (size_t j = 0; j < columns; j++)

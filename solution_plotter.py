@@ -26,6 +26,7 @@ class SolutionData:
 
 def read_data(path: str) -> SolutionData:
     with open(path) as data_file:
+        data_file.readline()
         m, n, x_min, x_max, y_min, y_max = map(float, data_file.readline().split())
         M, N = int(m), int(n)
         data = np.empty((M+1, N+1),  dtype=float)

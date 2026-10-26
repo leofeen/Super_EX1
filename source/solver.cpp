@@ -21,6 +21,7 @@ M(M), N(N), x_min(x_min), y_min(y_min), boundary_condition(boundary_condition), 
     this->F = Matrix<double>(M+1, N+1, 1); 
 
     this->B = Matrix<double>(N+1, M+1);
+    #pragma omp parallel for simd
     for (size_t i = 1; i <= M - 1; i++)
     {
         for (size_t j = 1; j <= N - 1; j++)
@@ -32,7 +33,7 @@ M(M), N(N), x_min(x_min), y_min(y_min), boundary_condition(boundary_condition), 
     this->D = this->Q + Matrix<double>(this->M+1, this->N+1, 2.0/pow(this->h_x, 2) + 2.0/pow(this->h_y, 2));
 }
 
-Matrix<double> Solver::solve(double precision)
+Matrix<double> Solver::solve(double precision, size_t* iteration_count)
 {
     double beta;
     Matrix<double> current_iteration(this->M+1, this->N+1);
@@ -48,6 +49,7 @@ Matrix<double> Solver::solve(double precision)
     auto step = this->scalar_product(current_z, current_r) / this->scalar_product(this->operator_A(descent), descent);
 
     auto next_iteration = current_iteration + step*descent;
+    *iteration_count = 1;
 
     while (this->norm(next_iteration - current_iteration) >= precision)
     {
@@ -64,6 +66,7 @@ Matrix<double> Solver::solve(double precision)
         step = this->scalar_product(current_z, current_r) / this->scalar_product(this->operator_A(descent), descent);
 
         next_iteration = current_iteration + step*descent;
+        *iteration_count += 1;
     }
 
     return next_iteration;
@@ -72,7 +75,7 @@ Matrix<double> Solver::solve(double precision)
 Matrix<double> Solver::operator_A(Matrix<double> iteration)
 {
     auto result = Matrix<double>(iteration.get_rows(), iteration.get_columns());
-
+    #pragma omp parallel for simd
     for (size_t i = 1; i < result.get_rows()-1; i++)
     {
         for (size_t j = 1; j < result.get_columns()-1; j++)
@@ -97,6 +100,7 @@ double Solver::get_y(size_t j)
 double Solver::scalar_product(Matrix<double> A, Matrix<double> B)
 {
     double result = 0;
+    // #pragma omp parallel for reduction(+ : result)
     for (size_t i = 1; i <= this->M - 1; i++)
     {
         for (size_t j = 1; j <= this->N - 1; j++)
@@ -186,13 +190,17 @@ double Solver::dichotomy_solve_y(double y_start, double y_end, double x)
 void Solver::init_S()
 {
 // This function checks for all 14 cases of (P_ij intersects D) 
-    double x_left, x_right, y_down, y_up, zero1, zero2, s_aux;
-    auto inside_region = Matrix<int>(2, 2);
+    // double x_left, x_right, y_down, y_up, zero1, zero2, s_aux;
+    // auto inside_region = Matrix<int>(2, 2);
     this->S = Matrix<double>(this->M+1, this->N+1);
+    #pragma omp parallel for
     for (size_t i = 1; i <= this->M - 1; i++)
     {
         for (size_t j = 1; j <= this->N - 1; j++)
         {
+            double x_left, x_right, y_down, y_up, zero1, zero2, s_aux;
+            auto inside_region = Matrix<int>(2, 2);
+
             x_left = this->get_x(i) - 0.5*this->h_x;
             x_right = this->get_x(i) + 0.5*this->h_x;
 
