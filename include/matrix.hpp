@@ -113,7 +113,7 @@ public:
 
     Matrix<T> operator/ (const T& scalar)
     {
-        return (*this) * (1 / scalar);
+        return (*this) * (1.0 / scalar);
     }
 
     Matrix<T> operator* (const Matrix<T>& other)

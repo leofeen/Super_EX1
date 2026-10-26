@@ -31,6 +31,7 @@ private:
     Matrix<double> F;
     Matrix<double> S;
     Matrix<double> B;
+    Matrix<double> D;
 
     Matrix<double> operator_A(Matrix<double> iteration);
 
@@ -48,5 +49,4 @@ private:
     double dichotomy_solve_x(double x_start, double x_end, double y);
     double dichotomy_solve_y(double y_start, double y_end, double x);
     void init_S();
-
 };

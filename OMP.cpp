@@ -22,7 +22,7 @@ double boundary_condition(double x, double y)
 
 int main()
 {
-    size_t M = 30;
+    size_t M = 80;
     size_t N = M;
     double x_min = -2.1;
     double x_max = 2.1;
@@ -31,7 +31,7 @@ int main()
 
     Solver solver(M, N, boundary_condition, check_point_inside_region, x_min, x_max, y_min, y_max);
     std::cout << "start solving" << std::endl;
-    auto result = solver.solve(1e-4);
+    auto result = solver.solve(1e-8);
 
     auto file = std::ofstream("./result.txt");
     file << M << ' ' << N << ' ' << x_min << ' ' << x_max << ' ' << y_min << ' ' << y_max << '\n';

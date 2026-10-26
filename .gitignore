@@ -1,0 +1,7 @@
+/build/
+/.vscode/
+/env/
+__pycache__/
+.ipynb_checkpoints/
+lib/
+*.cpython*

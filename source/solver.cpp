@@ -16,8 +16,9 @@ M(M), N(N), x_min(x_min), y_min(y_min), boundary_condition(boundary_condition), 
 
     this->init_S();
 
-    this->Q = (this->h_x*this->h_y * Matrix<double>(M+1, N+1, 1) - this->S) / (this->h_x*this->h_y * pow(this->eps, 2));
-    this->F = this->S / (this->h_x*this->h_y);
+    this->Q = (Matrix<double>(M+1, N+1, this->h_x*this->h_y) - this->S) / (this->h_x*this->h_y * pow(this->eps, 2));
+    // this->F = this->S / (this->h_x*this->h_y);
+    this->F = Matrix<double>(M+1, N+1, 1); 
 
     this->B = Matrix<double>(N+1, M+1);
     for (size_t i = 1; i <= M - 1; i++)
@@ -27,6 +28,8 @@ M(M), N(N), x_min(x_min), y_min(y_min), boundary_condition(boundary_condition), 
             this->B[i, j] = F[i, j] + Q[i, j]*this->boundary_condition(this->get_x(i), this->get_y(j));
         }
     }
+
+    this->D = this->Q + Matrix<double>(this->M+1, this->N+1, 2.0/pow(this->h_x, 2) + 2.0/pow(this->h_y, 2));
 }
 
 Matrix<double> Solver::solve(double precision)
@@ -57,7 +60,7 @@ Matrix<double> Solver::solve(double precision)
         current_r = next_r;
         current_z = next_z;
 
-        descent = current_r + beta*descent;
+        descent = current_z + beta*descent;
         step = this->scalar_product(current_z, current_r) / this->scalar_product(this->operator_A(descent), descent);
 
         next_iteration = current_iteration + step*descent;
@@ -74,9 +77,7 @@ Matrix<double> Solver::operator_A(Matrix<double> iteration)
     {
         for (size_t j = 1; j < result.get_columns()-1; j++)
         {
-            result[i, j] = -1 / this->h_x * ((iteration[i+1, j] - iteration[i, j]) / this->h_x 
-                            - (iteration[i, j] - iteration[i-1, j]) / this->h_x) - 1 / this->h_y * ((iteration[i, j+1] - iteration[i, j]) / this->h_y
-                            - (iteration[i, j] - iteration[i, j-1]) / this->h_y) + Q[i, j]*iteration[i, j];
+            result[i, j] = -(iteration[i+1, j] - 2*iteration[i, j] + iteration[i-1, j]) / pow(this->h_x, 2) - (iteration[i, j+1] - 2*iteration[i, j] + iteration[i, j-1]) / pow(this->h_y, 2) + Q[i, j]*iteration[i, j];
         }
     }
 
@@ -123,11 +124,11 @@ double Solver::dichotomy_solve_x(double x_start, double x_end, double y)
     int f_right = this->boundary_condition(x_end, y);
     if (f_right == 0) {return x_right;}
 
-    double x_centre = (x_start + x_end) / 2;
+    double x_centre = (x_start + x_end) / 2.0;
     int f_centre;
     while (x_right - x_left >= 1e-6)
     {
-        x_centre = (x_left + x_right) / 2;
+        x_centre = (x_left + x_right) / 2.0;
         f_centre = this->boundary_condition(x_centre, y);
         if (f_centre == 0) return x_centre;
 
@@ -158,11 +159,11 @@ double Solver::dichotomy_solve_y(double y_start, double y_end, double x)
     int f_right = this->boundary_condition(x, y_end);
     if (f_right == 0) {return y_right;}
 
-    double y_centre = (y_start + y_end) / 2;
+    double y_centre = (y_start + y_end) / 2.0;
     int f_centre;
     while (y_right - y_left >= 1e-6)
     {
-        y_centre = (y_left + y_right) / 2;
+        y_centre = (y_left + y_right) / 2.0;
         f_centre = this->boundary_condition(x, y_centre);
         if (f_centre == 0) return y_centre;
 
@@ -228,7 +229,7 @@ void Solver::init_S()
                 zero1 = this->dichotomy_solve_x(x_left, x_right, y_down);
                 zero2 = this->dichotomy_solve_x(x_left, x_right, y_up);
 
-                s_aux = this->h_y * (zero1 - x_left + zero2 - x_left)/2;
+                s_aux = this->h_y * (zero1 - x_left + zero2 - x_left)/2.0;
 
                 if (inside_region[0, 0] == 1)
                 {
@@ -245,7 +246,7 @@ void Solver::init_S()
                 zero1 = this->dichotomy_solve_y(y_down, y_up, x_left);
                 zero2 = this->dichotomy_solve_y(y_down, y_up, x_right);
 
-                s_aux = this->h_x * (zero1 - y_down + zero2 - y_down)/2;
+                s_aux = this->h_x * (zero1 - y_down + zero2 - y_down)/2.0;
 
                 if (inside_region[0, 0] == 1)
                 {
@@ -313,7 +314,7 @@ void Solver::init_S()
                 zero1 = this->dichotomy_solve_x(x_left, x_right, y_down);
                 zero2 = this->dichotomy_solve_y(y_down, y_up, x_right);
 
-                s_aux = 0.5 * (x_right - zero1) * (zero2 - y_up);
+                s_aux = 0.5 * (x_right - zero1) * (zero2 - y_down);
 
                 if (inside_region[1, 0] == 1)
                 {
