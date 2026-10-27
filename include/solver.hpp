@@ -1,9 +1,6 @@
 #pragma once
 
 #include <matrix.hpp>
-#include <numbers>
-#include <string>
-#include <memory>
 #include <iostream>
 #include <cmath>
 

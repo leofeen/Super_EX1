@@ -9,11 +9,11 @@
 
 int check_point_inside_region(double x, double y)
 {
-    if ((abs(x) >= 2) || (abs(y) >= 2) || (x*x + (y-2)*(y-2) < 1))
+    if ((std::abs(x) >= 2) || (std::abs(y) >= 2) || (x*x + (y-2)*(y-2) < 1))
     {
         return -1;
     }
-    if (abs(x*x + (y-2)*(y-2) - 1) < 1e-6)
+    if (std::abs(x*x + (y-2)*(y-2) - 1) < 1e-6)
     {
         return 0;
     }
@@ -57,10 +57,16 @@ int main(int argc, char* argv[])
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time) / 1e6;
     #endif
 
-    auto file = std::ofstream("./result.txt");
-    file << duration << ' ' << iteration_count << '\n';
-    file << M << ' ' << N << ' ' << x_min << ' ' << x_max << ' ' << y_min << ' ' << y_max << '\n';
-    file.close();
+    // auto file = std::ofstream("./result_main.txt");
+    // file << duration << ' ' << iteration_count << '\n';
+    // file << M << ' ' << N << ' ' << x_min << ' ' << x_max << ' ' << y_min << ' ' << y_max << '\n';
+    // file.close();
+
+    const char* filename = "./result.txt";
+    FILE* file = fopen(filename, "w");
+    std::fprintf(file, "%f %zu\n", duration, iteration_count);
+    std::fprintf(file, "%zu %zu %f %f %f %f\n", M, N, x_min, x_max, y_min, y_max);
+    fclose(file);
 
     result.write_to_file("./result.txt");
 }

@@ -26,7 +26,8 @@ M(M), N(N), x_min(x_min), y_min(y_min), boundary_condition(boundary_condition), 
     {
         for (size_t j = 1; j <= N - 1; j++)
         {
-            this->B[i, j] = F[i, j] + Q[i, j]*this->boundary_condition(this->get_x(i), this->get_y(j));
+            // this->B[i, j] = F[i, j] + Q[i, j]*this->boundary_condition(this->get_x(i), this->get_y(j));
+            this->B.set(i, j, F.get(i, j) + Q.get(i, j)*this->boundary_condition(this->get_x(i), this->get_y(j)));
         }
     }
 
@@ -80,7 +81,8 @@ Matrix<double> Solver::operator_A(Matrix<double> iteration)
     {
         for (size_t j = 1; j < result.get_columns()-1; j++)
         {
-            result[i, j] = -(iteration[i+1, j] - 2*iteration[i, j] + iteration[i-1, j]) / pow(this->h_x, 2) - (iteration[i, j+1] - 2*iteration[i, j] + iteration[i, j-1]) / pow(this->h_y, 2) + Q[i, j]*iteration[i, j];
+            // result[i, j] = -(iteration[i+1, j] - 2*iteration[i, j] + iteration[i-1, j]) / pow(this->h_x, 2) - (iteration[i, j+1] - 2*iteration[i, j] + iteration[i, j-1]) / pow(this->h_y, 2) + Q[i, j]*iteration[i, j];
+            result.set(i, j, -(iteration.get(i+1, j) - 2*iteration.get(i, j) + iteration.get(i-1, j)) / pow(this->h_x, 2) - (iteration.get(i, j+1) - 2*iteration.get(i, j) + iteration.get(i, j-1)) / pow(this->h_y, 2) + Q.get(i, j)*iteration.get(i, j));
         }
     }
 
@@ -105,7 +107,7 @@ double Solver::scalar_product(Matrix<double> A, Matrix<double> B)
     {
         for (size_t j = 1; j <= this->N - 1; j++)
         {
-            result += this->h_x * this->h_y * A[i, j] * B[i, j];
+            result += this->h_x * this->h_y * A.get(i, j) * B.get(i, j);
         }
     }
 
@@ -207,20 +209,20 @@ void Solver::init_S()
             y_down = this->get_y(j) - 0.5*this->h_y;
             y_up = this->get_y(j) + 0.5*this->h_y;
 
-            inside_region[0, 0] = this->check_point_inside_region(x_left, y_down);
-            inside_region[0, 1] = this->check_point_inside_region(x_left, y_up);
-            inside_region[1, 1] = this->check_point_inside_region(x_right, y_up);
-            inside_region[1, 0] = this->check_point_inside_region(x_right, y_down);
+            inside_region.set(0, 0, this->check_point_inside_region(x_left, y_down));
+            inside_region.set(0, 1, this->check_point_inside_region(x_left, y_up));
+            inside_region.set(1, 1, this->check_point_inside_region(x_right, y_up));
+            inside_region.set(1, 0, this->check_point_inside_region(x_right, y_down));
 
-            if ((inside_region[0, 0] >= 0) && (inside_region[0, 1] >= 0) && (inside_region[1, 1] >= 0) && (inside_region[1, 0] >= 0))
+            if ((inside_region.get(0, 0) >= 0) && (inside_region.get(0, 1) >= 0) && (inside_region.get(1, 1) >= 0) && (inside_region.get(1, 0) >= 0))
             {
-                this->S[i, j] = this->h_x*this->h_y;
+                this->S.set(i, j, this->h_x*this->h_y);
                 continue;
             }
 
-            if ((inside_region[0, 0] <= 0) && (inside_region[0, 1] <= 0) && (inside_region[1, 1] <= 0) && (inside_region[1, 0] <= 0))
+            if ((inside_region.get(0, 0) <= 0) && (inside_region.get(0, 1) <= 0) && (inside_region.get(1, 1) <= 0) && (inside_region.get(1, 0) <= 0))
             {
-                this->S[i, j] = 0;
+                this->S.set(i, j, 0);
                 continue;
             }
 
@@ -228,109 +230,109 @@ void Solver::init_S()
             {
                 for (int j1 = 0; j1 <= 1; j1++)
                 {
-                    inside_region[i1, j1] += 1 - abs(inside_region[i1, j1]); // Turn all 0 into 1, dichotomy will deal with it automatically
+                    inside_region.set(i1, j1, 1 - abs(inside_region.get(i1, j1))); // Turn all 0 into 1, dichotomy will deal with it automatically
                 }
             }
 
-            if ((inside_region[0, 0]*inside_region[1, 0] == -1) && (inside_region[0, 1]*inside_region[1, 1] == -1))
+            if ((inside_region.get(0, 0)*inside_region.get(1, 0) == -1) && (inside_region.get(0, 1)*inside_region.get(1, 1) == -1))
             {
                 zero1 = this->dichotomy_solve_x(x_left, x_right, y_down);
                 zero2 = this->dichotomy_solve_x(x_left, x_right, y_up);
 
                 s_aux = this->h_y * (zero1 - x_left + zero2 - x_left)/2.0;
 
-                if (inside_region[0, 0] == 1)
+                if (inside_region.get(0, 0) == 1)
                 {
-                    this->S[i, j] = s_aux;
+                    this->S.set(i, j, s_aux);
                     continue;
                 }
 
-                this->S[i, j] = this->h_x*this->h_y - s_aux;
+                this->S.set(i, j, this->h_x*this->h_y - s_aux);
                 continue;
             }
 
-            if ((inside_region[0, 0]*inside_region[0, 1] == -1) && (inside_region[1, 0]*inside_region[1, 1] == -1))
+            if ((inside_region.get(0, 0)*inside_region.get(0, 1) == -1) && (inside_region.get(1, 0)*inside_region.get(1, 1) == -1))
             {
                 zero1 = this->dichotomy_solve_y(y_down, y_up, x_left);
                 zero2 = this->dichotomy_solve_y(y_down, y_up, x_right);
 
                 s_aux = this->h_x * (zero1 - y_down + zero2 - y_down)/2.0;
 
-                if (inside_region[0, 0] == 1)
+                if (inside_region.get(0, 0) == 1)
                 {
-                    this->S[i, j] = s_aux;
+                    this->S.set(i, j, s_aux);
                     continue;
                 }
 
-                this->S[i, j] = this->h_x*this->h_y - s_aux;
+                this->S.set(i, j, this->h_x*this->h_y - s_aux);
                 continue;
             }
 
-            if ((inside_region[0, 0]*inside_region[0, 1] == -1) && (inside_region[0, 0]*inside_region[1, 0] == -1))
+            if ((inside_region.get(0, 0)*inside_region.get(0, 1) == -1) && (inside_region.get(0, 0)*inside_region.get(1, 0) == -1))
             {
                 zero1 = this->dichotomy_solve_x(x_left, x_right, y_down);
                 zero2 = this->dichotomy_solve_y(y_down, y_up, x_left);
 
                 s_aux = 0.5 * (zero1 - x_left) * (zero2 - y_down);
 
-                if (inside_region[0, 0] == 1)
+                if (inside_region.get(0, 0) == 1)
                 {
-                    this->S[i, j] = s_aux;
+                    this->S.set(i, j, s_aux);
                     continue;
                 }
 
-                this->S[i, j] = this->h_x*this->h_y - s_aux;
+                this->S.set(i, j, this->h_x*this->h_y - s_aux);
                 continue;
             }
 
-            if ((inside_region[0, 0]*inside_region[0, 1] == -1) && (inside_region[0, 1]*inside_region[1, 1] == -1))
+            if ((inside_region.get(0, 0)*inside_region.get(0, 1) == -1) && (inside_region.get(0, 1)*inside_region.get(1, 1) == -1))
             {
                 zero1 = this->dichotomy_solve_x(x_left, x_right, y_up);
                 zero2 = this->dichotomy_solve_y(y_down, y_up, x_left);
 
                 s_aux = 0.5 * (zero1 - x_left) * (y_up - zero2);
 
-                if (inside_region[0, 1] == 1)
+                if (inside_region.get(0, 1) == 1)
                 {
-                    this->S[i, j] = s_aux;
+                    this->S.set(i, j, s_aux);
                     continue;
                 }
 
-                this->S[i, j] = this->h_x*this->h_y - s_aux;
+                this->S.set(i, j, this->h_x*this->h_y - s_aux);
                 continue;
             }
 
-            if ((inside_region[1, 0]*inside_region[1, 1] == -1) && (inside_region[0, 1]*inside_region[1, 1] == -1))
+            if ((inside_region.get(1, 0)*inside_region.get(1, 1) == -1) && (inside_region.get(0, 1)*inside_region.get(1, 1) == -1))
             {
                 zero1 = this->dichotomy_solve_x(x_left, x_right, y_up);
                 zero2 = this->dichotomy_solve_y(y_down, y_up, x_right);
 
                 s_aux = 0.5 * (x_right - zero1) * (y_up - zero2);
 
-                if (inside_region[1, 1] == 1)
+                if (inside_region.get(1, 1) == 1)
                 {
-                    this->S[i, j] = s_aux;
+                    this->S.set(i, j, s_aux);
                     continue;
                 }
 
-                this->S[i, j] = this->h_x*this->h_y - s_aux;
+                this->S.set(i, j, this->h_x*this->h_y - s_aux);
                 continue;
             }
 
-            if ((inside_region[1, 0]*inside_region[1, 1] == -1) && (inside_region[1, 0]*inside_region[0, 0] == -1))
+            if ((inside_region.get(1, 0)*inside_region.get(1, 1) == -1) && (inside_region.get(1, 0)*inside_region.get(0, 0) == -1))
             {
                 zero1 = this->dichotomy_solve_x(x_left, x_right, y_down);
                 zero2 = this->dichotomy_solve_y(y_down, y_up, x_right);
 
                 s_aux = 0.5 * (x_right - zero1) * (zero2 - y_down);
 
-                if (inside_region[1, 0] == 1)
+                if (inside_region.get(1, 0) == 1)
                 {
-                    this->S[i, j] = s_aux;
+                    this->S.set(i, j, s_aux);
                     continue;
                 }
 
-                this->S[i, j] = this->h_x*this->h_y - s_aux;
+                this->S.set(i, j, this->h_x*this->h_y - s_aux);
                 continue;
             }
         }

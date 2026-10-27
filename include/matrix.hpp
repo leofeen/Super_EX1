@@ -2,9 +2,9 @@
 
 #include <vector>
 #include <iostream>
-#include <random>
 #include <fstream>
 #include <string>
+#include <cstdio>
 
 template <class T>
 class Matrix
@@ -19,24 +19,26 @@ public:
     size_t get_rows() const noexcept {return rows;}
     size_t get_columns() const noexcept {return columns;}
     
-    T& operator[] (size_t row, size_t column)
-    {
-        return data[row*this->columns + column];
-    };
+    // T& operator[] (size_t row, size_t column)
+    // {
+    //     return data[row*this->columns + column];
+    // };
 
-    const T& operator[] (size_t row, size_t column) const
-    {
-        return data[row*this->columns + column];
-    };
+    // const T& operator[] (size_t row, size_t column) const
+    // {
+    //     return data[row*this->columns + column];
+    // };
 
-    T get(size_t row, size_t column)
+    const T get(size_t row, size_t column) const
     {
-        return (*this)[row, column];
+        // return (*this)[row, column];
+        return data[row*this->columns + column];
     }
 
     void set(size_t row, size_t column, T value)
     {
-        (*this)[row, column] = value;
+        // (*this)[row, column] = value;
+        data[row*this->columns + column] = value;
     }
 
     Matrix() = default;
@@ -52,7 +54,8 @@ public:
         {
             for (size_t j = 0; j < columns; j++)
             {
-                (*this)[i, j] = default_val;
+                // (*this)[i, j] = default_val;
+                this->set(i, j, default_val);
             }
         }
     };
@@ -66,13 +69,14 @@ public:
             exit(1);
         }
 
-        auto result = Matrix<T>(rows, columns);
+        Matrix<T> result = Matrix<T>(rows, columns);
         // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
             {
-                result[i, j] = (*this)[i, j] + other[i, j];
+                // result[i, j] = (*this)[i, j] + other[i, j];
+                result.set(i, j, this->get(i, j) + other.get(i, j));
             }
         }
 
@@ -87,14 +91,15 @@ public:
             exit(1);
         }
 
-        auto result = Matrix<T>(rows, columns);
+        Matrix<T> result = Matrix<T>(rows, columns);
 
         // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
             {
-                result[i, j] = (*this)[i, j] - other[i, j];
+                // result[i, j] = (*this)[i, j] - other[i, j];
+                result.set(i, j, this->get(i, j) - other.get(i, j));
             }
         }
 
@@ -103,14 +108,15 @@ public:
 
     Matrix<T> operator* (const T& scalar)
     {
-        auto result = Matrix<T>(rows, columns);
+        Matrix<T> result = Matrix<T>(rows, columns);
 
         // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
             {
-                result[i, j] = (*this)[i, j] * scalar;
+                // result[i, j] = (*this)[i, j] * scalar;
+                result.set(i, j, this->get(i, j) * scalar);
             }
         }
 
@@ -130,17 +136,20 @@ public:
             exit(1);
         }
 
-        auto result = Matrix<T>(rows, other.columns);
+        Matrix<T> result = Matrix<T>(rows, other.columns);
 
         // #pragma omp parallel for reduction(+ : result)
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < other.columns; j++)
             {
+                T temp = 0;
                 for (size_t k = 0; k < columns; k++)
                 {
-                    result[i, j] += (*this)[i, k] * other[k ,j];
+                    // result[i, j] += (*this)[i, k] * other[k ,j];
+                    temp += this->get(i, k) * other.get(k, j);
                 }
+                result.set(i, j, temp);
             }
         }
 
@@ -155,13 +164,14 @@ public:
             exit(1);
         }
 
-        auto result = Matrix<T>(rows, columns);
+        Matrix<T> result = Matrix<T>(rows, columns);
         // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
             {
-                result[i, j] = (*this)[i, j] * other[i, j];
+                // result[i, j] = (*this)[i, j] * other[i, j];
+                result.set(i, j, this->get(i, j) * other.get(i, j));
             }
         }
 
@@ -176,13 +186,14 @@ public:
             exit(1);
         }
 
-        auto result = Matrix<T>(rows, columns);
+        Matrix<T> result = Matrix<T>(rows, columns);
         // #pragma omp parallel for simd
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns; j++)
             {
-                result[i, j] = (*this)[i, j] / other[i, j];
+                // result[i, j] = (*this)[i, j] / other[i, j];
+                result.set(i, j, this->get(i, j) / other.get(i, j));
             }
         }
 
@@ -199,26 +210,46 @@ public:
         return A.hadamard_division(B);
     }
 
-    void write_to_file(std::string filename)
-    {
-        auto file = std::ofstream(filename, std::ios::out | std::ios::app);
+    // void write_to_file(std::string filename)
+    // {
+    //     auto file = std::ofstream(filename);
         
-        if (!file.is_open())
-        {
-            std::cout << "Couldn\'t open the file" << '\n';
-            return;
-        }
+    //     if (!file.is_open())
+    //     {
+    //         std::cout << "Couldn\'t open the file" << '\n';
+    //         return;
+    //     }
+
+    //     for (size_t i = 0; i < rows; i++)
+    //     {
+    //         for (size_t j = 0; j < columns-1; j++)
+    //         {
+    //             // file << (*this)[i, j] << ' ';
+    //             file << this->get(i, j) << ' ';
+    //         }
+    //         // file << (*this)[i, columns-1] << '\n';
+    //         file << this->get(i, columns-1) << '\n';
+    //     }
+
+    //     file.close();
+    // }
+
+    void write_to_file(const char* filename) // C style because
+    {
+        FILE* file = fopen(filename, "a");
 
         for (size_t i = 0; i < rows; i++)
         {
             for (size_t j = 0; j < columns-1; j++)
             {
-                file << (*this)[i, j] << ' ';
+                // file << (*this)[i, j] << ' ';
+                std::fprintf(file, "%f ", this->get(i, j));
             }
-            file << (*this)[i, columns-1] << '\n';
+            // file << (*this)[i, columns-1] << '\n';
+            std::fprintf(file, "%f\n", this->get(i, columns-1));
         }
 
-        file.close();
+        fclose(file);
     }
 };
 
@@ -228,13 +259,14 @@ Matrix<T> operator* (const T& scalar, const Matrix<T>& mat)
     int rows = mat.get_rows();
     int columns = mat.get_columns();
 
-    auto result = Matrix<T>(rows, columns);
+    Matrix<T> result = Matrix<T>(rows, columns);
     // #pragma omp parallel for simd
     for (size_t i = 0; i < rows; i++)
     {
         for (size_t j = 0; j < columns; j++)
         {
-            result[i, j] = mat[i, j] * scalar;
+            // result[i, j] = mat[i, j] * scalar;
+            result.set(i, j, mat.get(i, j) * scalar);
         }
     }
 
@@ -256,7 +288,7 @@ std::ostream& operator<< (std::ostream& os, const Matrix<T>& mat)
 
         for (size_t j = 0; j < columns; j++)
         {
-            os << mat[i, j] << ' ';
+            os << mat.get(i, j) << ' ';
         }
 
         if (rows == 1) {os << ")" << std::endl;}
