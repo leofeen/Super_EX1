@@ -4,7 +4,8 @@
 #include <omp.h>
 
 
-// #define NUM_THREADS 16
+// #define NUM_THREADS 4
+#define N_POINTS 80
 
 
 int check_point_inside_region(double x, double y)
@@ -28,10 +29,21 @@ double boundary_condition(double x, double y)
 int main(int argc, char* argv[])
 {
     // omp_set_num_threads(NUM_THREADS);
-    omp_set_num_threads(std::stoi(argv[2]));
+    // omp_set_num_threads(std::stoi(argv[2]));
+    size_t M, N;
+    int index = 0;
+    if (argc == 4)
+    {
+        M = std::stoi(argv[1]);
+        N = std::stoi(argv[2]);
+        index = std::stoi(argv[3]);
+    }
+    else
+    {
+        M = N_POINTS;
+        N = M;
+    }
 
-    size_t M = std::stoi(argv[1]);
-    size_t N = M;
     double x_min = -2.1;
     double x_max = 2.1;
     double y_min = -2.1;
@@ -62,11 +74,12 @@ int main(int argc, char* argv[])
     // file << M << ' ' << N << ' ' << x_min << ' ' << x_max << ' ' << y_min << ' ' << y_max << '\n';
     // file.close();
 
-    const char* filename = "./result.txt";
+    char filename[40];
+    std::sprintf(filename, "./result_%zu_%zu_%d.txt", M, N, index);
     FILE* file = fopen(filename, "w");
     std::fprintf(file, "%f %zu\n", duration, iteration_count);
     std::fprintf(file, "%zu %zu %f %f %f %f\n", M, N, x_min, x_max, y_min, y_max);
     fclose(file);
 
-    result.write_to_file("./result.txt");
+    result.write_to_file(filename);
 }

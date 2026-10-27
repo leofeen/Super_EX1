@@ -20,7 +20,7 @@ M(M), N(N), x_min(x_min), y_min(y_min), boundary_condition(boundary_condition), 
     // this->F = this->S / (this->h_x*this->h_y);
     this->F = Matrix<double>(M+1, N+1, 1); 
 
-    this->B = Matrix<double>(N+1, M+1);
+    this->B = Matrix<double>(M+1, N+1);
     #pragma omp parallel for simd
     for (size_t i = 1; i <= M - 1; i++)
     {

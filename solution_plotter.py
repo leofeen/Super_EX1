@@ -5,8 +5,6 @@ from matplotlib.axes import Axes
 import dataclasses
 
 
-FILE_PATH = r"./build/result.txt" 
-
 def check_inside_region(x: float, y: float) -> int:
     if (np.abs(x) >= 2) or (np.abs(y) >= 2) or (x*x + (y-2)*(y-2) < 1):
         return -1
@@ -60,4 +58,6 @@ def plot_solution(solution: SolutionData) -> None:
     plt.show()
 
 if __name__ == "__main__":
-    plot_solution(read_data(FILE_PATH))
+    M, N, index = map(int, input("Input M, N and index: ").split())
+    file_path = rf"./build/result_{M}_{N}_{index}.txt" 
+    plot_solution(read_data(file_path))
