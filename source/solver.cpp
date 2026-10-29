@@ -76,7 +76,7 @@ Matrix<double> Solver::solve(double precision, size_t* iteration_count)
 Matrix<double> Solver::operator_A(Matrix<double> iteration)
 {
     auto result = Matrix<double>(iteration.get_rows(), iteration.get_columns());
-    #pragma omp parallel for simd
+    #pragma omp parallel for
     for (size_t i = 1; i < result.get_rows()-1; i++)
     {
         for (size_t j = 1; j < result.get_columns()-1; j++)
@@ -102,7 +102,7 @@ double Solver::get_y(size_t j)
 double Solver::scalar_product(Matrix<double> A, Matrix<double> B)
 {
     double result = 0;
-    // #pragma omp parallel for reduction(+ : result)
+    #pragma omp parallel for reduction(+ : result)
     for (size_t i = 1; i <= this->M - 1; i++)
     {
         for (size_t j = 1; j <= this->N - 1; j++)
@@ -195,7 +195,7 @@ void Solver::init_S()
     // double x_left, x_right, y_down, y_up, zero1, zero2, s_aux;
     // auto inside_region = Matrix<int>(2, 2);
     this->S = Matrix<double>(this->M+1, this->N+1);
-    #pragma omp parallel for
+    #pragma omp parallel for 
     for (size_t i = 1; i <= this->M - 1; i++)
     {
         for (size_t j = 1; j <= this->N - 1; j++)

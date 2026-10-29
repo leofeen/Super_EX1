@@ -4,7 +4,7 @@
 #include <omp.h>
 
 
-// #define NUM_THREADS 4
+#define NUM_THREADS 16
 #define N_POINTS 80
 
 
@@ -28,7 +28,6 @@ double boundary_condition(double x, double y)
 
 int main(int argc, char* argv[])
 {
-    // omp_set_num_threads(NUM_THREADS);
     // omp_set_num_threads(std::stoi(argv[2]));
     size_t M, N;
     int index = 0;
@@ -42,6 +41,7 @@ int main(int argc, char* argv[])
     {
         M = N_POINTS;
         N = M;
+        omp_set_num_threads(NUM_THREADS);
     }
 
     double x_min = -2.1;

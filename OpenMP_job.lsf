@@ -1,0 +1,6 @@
+#BSUB -W 00:15
+#BSUB -n 1
+#BSUB -o "OMP.%J.out"
+#BSUB -e "OMP.%J.err"
+#BSUB -R "span[hosts=1] affinity[core(4)]"
+/polusfs/lsf/openmp/launchOpenMP.py ./OMP 800 1200 0
