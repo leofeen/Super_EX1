@@ -15,6 +15,7 @@ private:
 
 public:
     std::vector<T> data;
+    // T* data;
 
     size_t get_rows() const noexcept {return rows;}
     size_t get_columns() const noexcept {return columns;}
@@ -83,6 +84,19 @@ public:
         return result;
     }
 
+    void add(const Matrix<T>& other, Matrix& result)
+    {
+        #pragma omp parallel for collapse(2)
+        for (size_t i = 0; i < rows; i++)
+        {
+            for (size_t j = 0; j < columns; j++)
+            {
+                // result[i, j] = (*this)[i, j] + other[i, j];
+                result.set(i, j, this->get(i, j) + other.get(i, j));
+            }
+        }
+    }
+
     Matrix<T> operator- (const Matrix<T>& other)
     {
         if (columns != other.columns && rows != other.rows)
@@ -104,6 +118,19 @@ public:
         }
 
         return result;
+    }
+
+    void sub(const Matrix<T>& other, Matrix& result)
+    {
+        #pragma omp parallel for collapse(2)
+        for (size_t i = 0; i < rows; i++)
+        {
+            for (size_t j = 0; j < columns; j++)
+            {
+                // result[i, j] = (*this)[i, j] + other[i, j];
+                result.set(i, j, this->get(i, j) - other.get(i, j));
+            }
+        }
     }
 
     Matrix<T> operator* (const T& scalar)

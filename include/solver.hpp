@@ -11,7 +11,8 @@ public:
     
     Solver(size_t M, size_t N, double (*boundary_condition)(double, double), int (*check_point_inside_region)(double, double), double x_min, double x_max, double y_min, double y_max);
 
-    Matrix<double> solve(double precision, size_t* iteration_count);
+    Matrix<double> solve(double precision, int& iteration_count);
+    Matrix<double> solve_explicit(double precision, int& iteration_count);
 
 private:
     double x_min;
@@ -30,7 +31,7 @@ private:
     Matrix<double> B;
     Matrix<double> D;
 
-    Matrix<double> operator_A(Matrix<double> iteration);
+    Matrix<double> operator_A(const Matrix<double>& iteration);
 
     double inline get_x(size_t i);
     double inline get_y(size_t j);
@@ -40,8 +41,8 @@ private:
     double (*boundary_condition)(double, double) = nullptr;
     int (*check_point_inside_region)(double, double) = nullptr;
 
-    double scalar_product(Matrix<double> A, Matrix<double> B);
-    double inline norm(Matrix<double> A);
+    double scalar_product(const Matrix<double>& A, const Matrix<double>& B);
+    double inline norm(const Matrix<double>& A);
 
     double dichotomy_solve_x(double x_start, double x_end, double y);
     double dichotomy_solve_y(double y_start, double y_end, double x);

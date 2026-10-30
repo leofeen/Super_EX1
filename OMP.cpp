@@ -4,7 +4,7 @@
 #include <omp.h>
 
 
-#define NUM_THREADS 16
+#define NUM_THREADS 4
 #define N_POINTS 80
 
 
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     double y_min = -2.1;
     double y_max = 2.1;
 
-    size_t iteration_count = 1;
+    int iteration_count = 1;
 
     #ifdef _OPENMP
     auto start_time = omp_get_wtime();
@@ -59,7 +59,8 @@ int main(int argc, char* argv[])
 
     Solver solver(M, N, boundary_condition, check_point_inside_region, x_min, x_max, y_min, y_max);
     // std::cout << "start solving" << std::endl;
-    auto result = solver.solve(1e-8, &iteration_count);
+    // auto result = solver.solve(1e-8, iteration_count);
+    auto result = solver.solve_explicit(1e-8, iteration_count);
 
     #ifdef _OPENMP
     auto end_time = omp_get_wtime();
@@ -77,7 +78,7 @@ int main(int argc, char* argv[])
     char filename[40];
     std::sprintf(filename, "./result_%zu_%zu_%d.txt", M, N, index);
     FILE* file = fopen(filename, "w");
-    std::fprintf(file, "%f %zu\n", duration, iteration_count);
+    std::fprintf(file, "%f %d\n", duration, iteration_count);
     std::fprintf(file, "%zu %zu %f %f %f %f\n", M, N, x_min, x_max, y_min, y_max);
     fclose(file);
 

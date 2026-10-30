@@ -36,7 +36,7 @@ M(M), N(N), x_min(x_min), y_min(y_min), boundary_condition(boundary_condition), 
     this->D = this->Q + Matrix<double>(this->M+1, this->N+1, 2.0/pow(this->h_x, 2) + 2.0/pow(this->h_y, 2));
 }
 
-Matrix<double> Solver::solve(double precision, size_t* iteration_count)
+Matrix<double> Solver::solve(double precision, int& iteration_count)
 {
     double beta;
     Matrix<double> current_iteration(this->M+1, this->N+1);
@@ -52,7 +52,7 @@ Matrix<double> Solver::solve(double precision, size_t* iteration_count)
     auto step = this->scalar_product(current_z, current_r) / this->scalar_product(this->operator_A(descent), descent);
 
     auto next_iteration = current_iteration + step*descent;
-    *iteration_count = 1;
+    iteration_count = 1;
 
     while (this->norm(next_iteration - current_iteration) >= precision)
     {
@@ -69,16 +69,93 @@ Matrix<double> Solver::solve(double precision, size_t* iteration_count)
         step = this->scalar_product(current_z, current_r) / this->scalar_product(this->operator_A(descent), descent);
 
         next_iteration = current_iteration + step*descent;
-        *iteration_count += 1;
+        iteration_count += 1;
     }
 
     return next_iteration;
 }
 
-Matrix<double> Solver::operator_A(Matrix<double> iteration)
+Matrix<double> Solver::solve_explicit(double precision, int& iteration_count)
+{
+    double beta;
+    Matrix<double> iteration(this->M+1, this->N+1);
+
+    auto r = this->B - this->operator_A(iteration);
+
+    auto descent = r.hadamard_division(this->D);
+    auto A_descent = this->operator_A(descent);
+
+    double scalar_product_weight = this->h_x * this->h_y;
+    double zr = this->scalar_product(descent, r) / scalar_product_weight;
+    double zr_next;
+    double descent_A_descent = this->scalar_product(A_descent, descent) / scalar_product_weight;
+    double descent_sqr;
+
+    double inv_h_x_sqr = 1.0 / pow(this->h_x, 2);
+    double inv_h_y_sqr = 1.0 / pow(this->h_y, 2);
+
+    auto step =  zr / descent_A_descent;
+
+    int max_iterations = (this->N - 1) * (this->M - 1);
+    int iteration_number;
+    for (iteration_number = 1; iteration_number <= max_iterations; iteration_number++)
+    {
+        zr_next = 0;
+        #pragma omp parallel for reduction(+ : zr_next)
+        for (size_t i = 1; i <= this->M-1; i++)
+        {
+            for (size_t j = 1; j <= this->N-1; j++)
+            {
+                iteration.set(i, j, iteration.get(i, j) + step*descent.get(i, j));
+
+                r.set(i, j, r.get(i, j) - step*A_descent.get(i, j));
+
+                zr_next += r.get(i, j) * r.get(i, j) / this->D.get(i, j);
+            }
+        }
+
+        beta = zr_next / zr;
+        zr = zr_next;
+
+        #pragma omp parallel for
+        for (size_t i = 1; i <= this->M-1; i++)
+        {
+            for (size_t j = 1; j <= this->N-1; j++)
+            {
+                descent.set(i, j, r.get(i, j) / this->D.get(i, j) + beta * descent.get(i, j));
+            }
+        }
+    
+        descent_A_descent = 0;
+        descent_sqr = 0;
+        #pragma omp parallel for reduction(+ : descent_A_descent, descent_sqr)
+        for (size_t i = 1; i <= this->M-1; i++)
+        {
+            for (size_t j = 1; j <= this->N-1; j++)
+            {
+                A_descent.set(i, j, -(descent.get(i+1, j) + descent.get(i-1, j)) * inv_h_x_sqr - (descent.get(i, j+1) + descent.get(i, j-1)) * inv_h_y_sqr + D.get(i, j)*descent.get(i, j));
+
+                descent_A_descent += descent.get(i, j) * A_descent.get(i, j);
+                descent_sqr += descent.get(i, j) * descent.get(i, j);
+            }
+        }
+
+        step = zr / descent_A_descent;
+
+        if (std::sqrt(step*step*descent_sqr*scalar_product_weight) < precision)
+        {
+            break;
+        }
+    }
+
+    iteration_count = iteration_number;
+    return iteration;
+}
+
+Matrix<double> Solver::operator_A(const Matrix<double>& iteration)
 {
     auto result = Matrix<double>(iteration.get_rows(), iteration.get_columns());
-    #pragma omp parallel for shared(result) collapse(2)
+    #pragma omp parallel for shared(result)
     for (size_t i = 1; i < result.get_rows()-1; i++)
     {
         for (size_t j = 1; j < result.get_columns()-1; j++)
@@ -101,10 +178,10 @@ double Solver::get_y(size_t j)
     return this->y_min + j*this->h_y;
 }
 
-double Solver::scalar_product(Matrix<double> A, Matrix<double> B)
+double Solver::scalar_product(const Matrix<double>& A, const Matrix<double>& B)
 {
     double result = 0;
-    #pragma omp parallel for reduction(+ : result) collapse(2)
+    #pragma omp parallel for reduction(+ : result)
     for (size_t i = 1; i <= this->M - 1; i++)
     {
         for (size_t j = 1; j <= this->N - 1; j++)
@@ -116,7 +193,7 @@ double Solver::scalar_product(Matrix<double> A, Matrix<double> B)
     return result;
 }
 
-double Solver::norm(Matrix<double> A)
+double Solver::norm(const Matrix<double>& A)
 {
     return sqrt(this->scalar_product(A, A));
 }
