@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     #endif
 
     Solver solver(M, N, boundary_condition, check_point_inside_region, x_min, x_max, y_min, y_max);
-    std::cout << "start solving" << std::endl;
+    // std::cout << "start solving" << std::endl;
     auto result = solver.solve(1e-8, &iteration_count);
 
     #ifdef _OPENMP

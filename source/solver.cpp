@@ -12,22 +12,24 @@ M(M), N(N), x_min(x_min), y_min(y_min), boundary_condition(boundary_condition), 
 
     this->h_x = (x_max - x_min) / M;
     this->h_y = (y_max - y_min) / N;
-    this->eps = pow(std::max(this->h_x, this->h_y), 2);
+    double eps = pow(std::max(this->h_x, this->h_y), 2);
 
-    this->init_S();
+    // this->init_S();
+    this->init_S_less_accurate();
+    // std::cout << this->S;
 
-    this->Q = (Matrix<double>(M+1, N+1, this->h_x*this->h_y) - this->S) / (this->h_x*this->h_y * pow(this->eps, 2));
+    this->Q = (Matrix<double>(M+1, N+1, this->h_x*this->h_y) - this->S) / (this->h_x*this->h_y * pow(eps, 2));
     // this->F = this->S / (this->h_x*this->h_y);
-    this->F = Matrix<double>(M+1, N+1, 1); 
+    // this->F = Matrix<double>(M+1, N+1, 1);  // F[i, j] == 1, why bother, again
 
     this->B = Matrix<double>(M+1, N+1);
-    #pragma omp parallel for simd
+    #pragma omp parallel for shared(B) collapse(2)
     for (size_t i = 1; i <= M - 1; i++)
     {
         for (size_t j = 1; j <= N - 1; j++)
         {
             // this->B[i, j] = F[i, j] + Q[i, j]*this->boundary_condition(this->get_x(i), this->get_y(j));
-            this->B.set(i, j, F.get(i, j) + Q.get(i, j)*this->boundary_condition(this->get_x(i), this->get_y(j)));
+            this->B.set(i, j, 1 + Q.get(i, j)*this->boundary_condition(this->get_x(i), this->get_y(j)));
         }
     }
 
@@ -76,7 +78,7 @@ Matrix<double> Solver::solve(double precision, size_t* iteration_count)
 Matrix<double> Solver::operator_A(Matrix<double> iteration)
 {
     auto result = Matrix<double>(iteration.get_rows(), iteration.get_columns());
-    #pragma omp parallel for
+    #pragma omp parallel for shared(result) collapse(2)
     for (size_t i = 1; i < result.get_rows()-1; i++)
     {
         for (size_t j = 1; j < result.get_columns()-1; j++)
@@ -102,7 +104,7 @@ double Solver::get_y(size_t j)
 double Solver::scalar_product(Matrix<double> A, Matrix<double> B)
 {
     double result = 0;
-    #pragma omp parallel for reduction(+ : result)
+    #pragma omp parallel for reduction(+ : result) collapse(2)
     for (size_t i = 1; i <= this->M - 1; i++)
     {
         for (size_t j = 1; j <= this->N - 1; j++)
@@ -195,7 +197,7 @@ void Solver::init_S()
     // double x_left, x_right, y_down, y_up, zero1, zero2, s_aux;
     // auto inside_region = Matrix<int>(2, 2);
     this->S = Matrix<double>(this->M+1, this->N+1);
-    #pragma omp parallel for 
+    #pragma omp parallel for shared(S)
     for (size_t i = 1; i <= this->M - 1; i++)
     {
         for (size_t j = 1; j <= this->N - 1; j++)
@@ -335,6 +337,56 @@ void Solver::init_S()
                 this->S.set(i, j, this->h_x*this->h_y - s_aux);
                 continue;
             }
+        }
+    }
+}
+
+void Solver::init_S_less_accurate()
+{
+    this->S = Matrix<double>(this->M+1, this->N+1);
+    double area = this->h_x*this->h_y;
+    #pragma omp parallel for shared(S, area) collapse(2)
+    for (size_t i = 1; i <= this->M - 1; i++)
+    {
+        for (size_t j = 1; j <= this->N - 1; j++)
+        {
+            double x_left, x_right, y_down, y_up;
+            int sum = 0;
+
+            x_left = this->get_x(i) - 0.5*this->h_x;
+            x_right = this->get_x(i) + 0.5*this->h_x;
+
+            y_down = this->get_y(j) - 0.5*this->h_y;
+            y_up = this->get_y(j) + 0.5*this->h_y;
+
+            auto in_ld = this->check_point_inside_region(x_left, y_down);
+            auto in_lu = this->check_point_inside_region(x_left, y_up);
+            auto in_ru = this->check_point_inside_region(x_right, y_up);
+            auto in_rd = this->check_point_inside_region(x_right, y_down);
+
+            // if ((in_ld >= 0) && (in_rd >= 0) && (in_lu >= 0) && (in_ru) >= 0)
+            // {
+            //     this->S.set(i, j, area);
+            //     continue;
+            // }
+
+            // if ((in_ld <= 0) && (in_rd <= 0) && (in_lu <= 0) && (in_ru) <= 0)
+            // {
+            //     this->S.set(i, j, 0);
+            //     continue;
+            // }
+
+            // sum += 2 - in_ld * (in_ld + 1); // 1->1, 0->1, -1->0, don't want to change the function output just yet
+            // sum += 2 - in_lu * (in_lu + 1);
+            // sum += 2 - in_ru * (in_ru + 1);
+            // sum += 2 - in_rd * (in_rd + 1);
+
+            sum += in_ld * (1.0 + in_ld);  // 1->1, 0->0, -1->0
+            sum += in_rd * (1.0 + in_rd);
+            sum += in_lu * (1.0 + in_lu);
+            sum += in_ru * (1.0 + in_ru);
+
+            this->S.set(i, j, (area/8.0)*sum);
         }
     }
 }

@@ -22,10 +22,10 @@ private:
     double h_y;
     size_t N;
 
-    double eps;
+    // double eps;
 
     Matrix<double> Q;
-    Matrix<double> F;
+    // Matrix<double> F;
     Matrix<double> S;
     Matrix<double> B;
     Matrix<double> D;
@@ -46,4 +46,5 @@ private:
     double dichotomy_solve_x(double x_start, double x_end, double y);
     double dichotomy_solve_y(double y_start, double y_end, double x);
     void init_S();
+    void init_S_less_accurate();
 };

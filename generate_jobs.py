@@ -17,14 +17,15 @@ JOB_CONFIGS = {
 
 def generate_seq_file(m: str, n:str, index: int) -> None:
     with open(rf"./jobs/job_seq_{m}_{n}_{index}.lsf", "w") as file:
-        file.write(f'#BSUB -m "polus-c2-ib polus-c4-ib"\n#BSUB -W 00:15\n#BSUB -n 1\n#BSUB -o "SEQ.%J.out"\n#BSUB -e "SEQ.%J.err"\n#BSUB -R "affinity[core(1)]"\n./SEQ {m} {n} {index}')
+        file.write(f'#BSUB -x\n#BSUB -m "polus-c2-ib polus-c4-ib"\n#BSUB -W 00:15\n#BSUB -n 1\n#BSUB -o "SEQ.%J.out"\n#BSUB -e "SEQ.%J.err"\n#BSUB -R "affinity[core(1)]"\n./SEQ {m} {n} {index}')
 
 def generate_omp_file(m: str, n:str, threads: int) -> None:
     with open(rf"./jobs/job_omp_{m}_{n}_{threads}.lsf", "w") as file:
         if threads <= CORES_PER_NODE:
-            file.write(f'#BSUB -m "polus-c2-ib polus-c4-ib"\n#BSUB -W 00:15\n#BSUB -n 1\n#BSUB -o "OMP.%J.out"\n#BSUB -e "OMP.%J.err"\n#BSUB -R "affinity[core({threads})]"\nexport OMP_NUM_THREADS={threads} OMP_PROC_BIND=close\n/polusfs/lsf/openmp/launchOpenMP.py ./OMP {m} {n} {threads}')
+            number_of_cores = threads
         else:
-            file.write(f'#BSUB -m "polus-c2-ib polus-c4-ib"\n#BSUB -W 00:15\n#BSUB -n 1\n#BSUB -o "OMP.%J.out"\n#BSUB -e "OMP.%J.err"\n#BSUB -R "affinity[core({threads//2})]"\nexport OMP_NUM_THREADS={threads} OMP_PROC_BIND=close\n/polusfs/lsf/openmp/launchOpenMP.py ./OMP {m} {n} {threads}')
+            number_of_cores = threads // 2
+        file.write(f'#BSUB -x\n#BSUB -m "polus-c2-ib polus-c4-ib"\n#BSUB -W 00:15\n#BSUB -n 1\n#BSUB -o "OMP.%J.out"\n#BSUB -e "OMP.%J.err"\n#BSUB -R "affinity[core({number_of_cores})]"\nexport OMP_NUM_THREADS={threads} OMP_PROC_BIND=close\n/polusfs/lsf/openmp/launchOpenMP.py ./OMP {m} {n} {threads}')
 
 def generate_all_files() -> None:
     # with open(SH_RUN_SCRIPT_FILEPATH, "w") as file:
